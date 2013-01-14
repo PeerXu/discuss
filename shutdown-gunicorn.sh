@@ -2,6 +2,9 @@
 
 set -e
 
-PIDFILE=/tmp/gunicorn.pid
+PROJECT=discuss
+GUNICORN=gunicorn
+
+PIDFILE=/tmp/$GUNICORN-$PROJECT.pid
 
 kill -9 `cat $PIDFILE`

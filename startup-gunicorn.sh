@@ -1,7 +1,7 @@
 #!/bin/bash
 
 PROJECT=discuss
-HOME=~/discuss
+HOME=~/git/discuss
 GUNICORN=gunicorn
 LOGFILE=/dev/shm/$GUNICORN-$PROJECT.log
 ACCESSLOGFILE=/dev/shm/$GUNICORN-$PROJECT-access.log
