@@ -8,12 +8,13 @@ ACCESSLOGFILE=/dev/shm/$GUNICORN-$PROJECT-access.log
 PIDFILE=/tmp/$GUNICORN-$PROJECT.pid
 NUM_WORKERS=1
 WORKER=gevent
-ADDRESS=0.0.0.0:10002
+ADDRESS=127.0.0.1:10002
 APPFILE=core
 APP=app
 
 cd $HOME
 
+if [ -z $DEBUG ]; then
 $GUNICORN \
  --worker-class=$WORKER \
  --workers=$NUM_WORKERS \
@@ -23,3 +24,14 @@ $GUNICORN \
  --bind=$ADDRESS \
  --daemon \
 $APPFILE:$APP
+else
+$GUNICORN \
+ --worker-class=$WORKER \
+ --workers=$NUM_WORKERS \
+ --pid=$PIDFILE \
+ --access-logfile=$ACCESSLOGFILE \
+ --bind=$ADDRESS \
+ --graceful-timeout=3600 \
+ --timeout=3600 \
+$APPFILE:$APP
+fi
