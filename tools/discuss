@@ -1,0 +1,13 @@
+#!/usr/bin/newlisp
+
+(set 'library '("lib.lsp"))
+(dolist (lib library)
+  (load lib))
+
+(if (<= (length $main-args) 2)
+    (utils:usage))
+
+(let (argv (rest (rest $main-args)))
+  (println (apply discuss:get argv)))
+
+(exit 0)

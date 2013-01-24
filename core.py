@@ -69,6 +69,16 @@ class Discuss(object):
              'create_time': self._create_time,
              })
 
+    def to_dict(self):
+        return {'id': self._id,
+                'post_id': self._post_id,
+                'title': self._title,
+                'author': self._author,
+                'email': self._email,
+                'content': self._content,
+                'create_time': self._create_time}
+
+
     def serialize(self):
         discuss_header = "discuss:%s:" % self.id
         post_header = "post:%s:" % self.post_id
@@ -111,6 +121,10 @@ class Discuss(object):
         return _cache.set_all("discuss:ids")
 
     @classmethod
+    def exist(cls, id):
+        return _cache.set_exist("discuss:ids", id)
+
+    @classmethod
     def get(cls, id):
         if not _cache.set_exist("discuss:ids", id):
             return None
@@ -125,8 +139,8 @@ class Discuss(object):
 
     @classmethod
     def get_by_post_id(cls, post_id):
-        if not _cache.set_exist("post:%s:discuss_ids" % post_id):
-            return None
+        if not _cache.set_exist("post:ids", post_id):
+            return []
         return map(cls.get, _cache.set_all("post:%s:discuss_ids" % post_id))
    
 from flask import Flask, request, Response
@@ -140,6 +154,7 @@ uuidgen = lambda: str(uuid4())
 def api_hello():
     return "hello,world"
 
+
 @app.route("/api/discuss", methods=["POST"])
 def api_discuss_post():
     js = request.json
@@ -151,12 +166,14 @@ def api_discuss_post():
 
 def _api_discuss_post(post_id, title, author, email, content):
     discuss = Discuss.create(uuidgen(), post_id, title, author, email, content, now())
-    response = Response(discuss.to_json(), status=200, mimetype="application/json")
+    response = Response(json.dumps(discuss.to_dict()),
+                        status=200, 
+                        mimetype="application/json")
     return response
+
 
 @app.route("/api/discuss/ids", methods=["GET"])
 def api_discuss_get_ids():
-    ret = _api_discuss_get_ids()
     return Response(json.dumps(_api_discuss_get_ids()), 
                     status=200, 
                     mimetype="application/json")
@@ -165,26 +182,47 @@ def _api_discuss_get_ids():
     return [x for x in iter(Discuss.ids())]
 
 
+@app.route("/api/discuss/all", methods=["GET"])
+def api_discuss_get_all():
+    return Response(json.dumps(_api_discuss_get_all()),
+                    status=200,
+                    mimetype="application/json")
+
+def _api_discuss_get_all():
+    return [_api_discuss_get(id) for id in _api_discuss_get_ids()]
+
+
 @app.route("/api/discuss/<id>", methods=["GET"])
 def api_discuss_get(id):
-    return _api_discuss_get(id)
+    return Response(json.dumps(_api_discuss_get(id)),
+                    status=200,
+                    mimetype="application/json")
 
 def _api_discuss_get(id):
     discuss = Discuss.get(id)
-    if discuss == None:
-        ret = json.dumps({})
-    else:
-        ret = discuss.to_json()
+    ret = discuss.to_dict() if discuss else {}
+    return ret
 
-    response = Response(ret, status=200, mimetype="application/json")
-    return response
+
+@app.route("/api/discuss/<id>", methods=["DELETE"])
+def api_discuss_delete(id):
+    return Response(json.dumps(_api_discuss_delete(id)),
+                    status=200,
+                    mimetype="application/json")
+
+def _api_discuss_delete(id):
+    if not Discuss.exist(id):
+        return []
+
+    Discuss.delete(id)
+    return [id]
+
 
 @app.route("/api/discuss/post/<id>", methods=["GET"])
 def api_discuss_get_by_post_id(id):
-    import pdb; pdb.set_trace();
     return Response(json.dumps(_api_discuss_get_by_post_id(id)),
                     status=200,
                     mimetype="application/json")
 
 def _api_discuss_get_by_post_id(id):
-    return Discuss.get_by_post_id(id)
+    return [d.to_dict() for d in Discuss.get_by_post_id(id)]
